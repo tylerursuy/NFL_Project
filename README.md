@@ -1,4 +1,4 @@
-# NFL_Project
+# NFL Project
 Intro to Machine Learning Project
 
 Group: Wolves of Howard Street

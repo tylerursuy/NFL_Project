@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np
 import math
 
-nfl = pd.read_csv("data/NFL_Plays.csv")
-spread = pd.read_csv("data/spreadspoke_scores.csv")
+nfl = pd.read_csv("data/NFL_Plays.csv", low_memory=False)
+spread = pd.read_csv("data/spreadspoke_scores.csv", low_memory=False)
 
 teams = {"ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons", "BAL": "Baltimore Ravens",
          "BUF": "Buffalo Bills", "CAR": "Carolina Panthers", "CHI": "Chicago Bears",
@@ -23,7 +23,7 @@ nfl_teams = nfl[["Date", "GameID", "HomeTeam", "AwayTeam"]]
 spread_games = list()
 for game in range(len(spread["spread_favorite"])):
     if not math.isnan(spread["spread_favorite"][game]):
-        if int(spread["schedule_date"][game][6:10]) > 2009:
+        if int(spread["schedule_date"][game][6:10]) >= 2009:
             spread_games.append(spread.iloc[game])
     else:
         pass
@@ -37,13 +37,16 @@ for date in range(len(spread_dates_list)):
     spread_dates_list[date] = spread_dates_list[date][6:10] + "/" + \
                               spread_dates_list[date][0:2] + "/" + \
                               spread_dates_list[date][3:5]
-spread_games.drop(columns=["schedule_date"])
+spread_games = spread_games.drop(columns=["schedule_date"])
 spread_games["schedule_date"] = spread_dates_list
 nfl_dates_list = list()
 for date in nfl_teams["Date"]:
     nfl_dates_list.append(date.replace("-", "/"))
-nfl_teams.drop(columns=["Date"])
+nfl_teams = nfl_teams.drop(columns=["Date"])
 nfl_teams["Date"] = nfl_dates_list
+cols = nfl_teams.columns.tolist()
+cols = cols[-1:] + cols[:-1]
+nfl_teams = nfl_teams[cols]
 nfl_dates_set = set()
 for date in nfl_dates_list:
     nfl_dates_set.add(date)
@@ -73,3 +76,7 @@ for game in accounted_spread_array:
 new_df = pd.DataFrame(matched_scores, columns=["Date", "Home Team", "Away Team",
                                                "Home Score", "Away Score", "Favorite Team ID",
                                                "Spread Favorite", "Over Under", "Game ID"])
+new_cols = new_df.columns.tolist()
+new_cols = new_cols[-1:] + new_cols[:-1]
+new_df = new_df[new_cols]
+print(new_df.head())

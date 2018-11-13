@@ -79,4 +79,3 @@ new_df = pd.DataFrame(matched_scores, columns=["Date", "Home Team", "Away Team",
 new_cols = new_df.columns.tolist()
 new_cols = new_cols[-1:] + new_cols[:-1]
 new_df = new_df[new_cols]
-print(new_df.head())

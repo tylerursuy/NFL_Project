@@ -30,7 +30,7 @@ nfl_teams = nfl[["Date", "GameID", "HomeTeam", "AwayTeam"]]
 spread_games = list()
 for game in range(len(spread["spread_favorite"])):
     if not math.isnan(spread["spread_favorite"][game]):
-        if int(spread["schedule_date"][game][6:10]) > 2009:
+        if int(spread["schedule_date"][game][6:10]) >= 2009:
             spread_games.append(spread.iloc[game])
     else:
         pass

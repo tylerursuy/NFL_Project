@@ -125,7 +125,7 @@ for i in range(nfl.shape[0]):
             awaysc.extend([offscore + awadj])
         hmadj = 0;
         awadj = 0  # will be uncommented
-    if nfl.qtr[i] == 2 and not nfl.qtr[i + 1] == 2:  # 4 to be changed to 2
+    if nfl.qtr[i] == 4 and not nfl.qtr[i + 1] == 4:  # 4 to be changed to 2
         gameid.extend([nfl.GameID[i]])
         hometm.extend([nfl.HomeTeam[i]])
         awaytm.extend([nfl.AwayTeam[i]])
@@ -172,7 +172,7 @@ for i in range(nfl.shape[0]):
                     awadj += 1
                     if nfl.ScoreDiff[i] == nfl.ScoreDiff[i + j]:
                         awadj += 6
-    if nfl.qtr[i] in [1, 2]:  # to be changed to [1,2]
+    if nfl.qtr[i] in [1, 2, 3, 4]:  # to be changed to [1,2]
         if nfl.PassAttempt[i] == 1 and not nfl.PlayType[i] == 'No Play':
             if nfl.posteam[i] == nfl.HomeTeam[i]:
                 hpatts[-1] += 1
@@ -214,4 +214,4 @@ wrangled = pd.DataFrame({'gameid':gameid, 'home':hometm, 'away':awaytm, 'homesc'
 wrangled = wrangled.set_index('gameid')
 
 merged = new_df.merge(wrangled, how='outer', on='gameid')
-merged.to_csv('nfl_cleaned.csv')
+merged.to_csv('nfl_cleaned_full.csv')

@@ -22,7 +22,7 @@ teams = {"ARI": "Arizona Cardinals", "ATL": "Atlanta Falcons", "BAL": "Baltimore
          "NE": "New England Patriots", "NO": "New Orleans Saints", "NYG": "New York Giants",
          "NYJ": "New York Jets", "OAK": "Oakland Raiders", "PHI": "Philadelphia Eagles",
          "PIT": "Pittsburgh Steelers", "SD": "San Diego Chargers", "SEA": "Seattle Seahawks",
-         "SF": "San Francisco 49ers", "STL": "St. Louis Cardinals", "TB": "Tampa Bay Buccaneers",
+         "SF": "San Francisco 49ers", "STL": "St. Louis Rams", "TB": "Tampa Bay Buccaneers",
          "TEN": "Tennessee Titans", "WAS": "Washington Redskins"}
 
 """Get desired features to include"""

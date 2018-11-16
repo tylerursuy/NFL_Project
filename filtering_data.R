@@ -4,7 +4,7 @@ library(dplyr)
 library(tidyverse)
 
 # load data
-nfl_data <- read_csv("/Users/eddieowens/Desktop/USF/FallMod2/ML/project/NFL_Project/nfl_cleaned.csv")
+nfl_data <- read_csv("nfl_cleaned.csv")
 
 # 1. filter out any rows where the home and away scores do not match (cols E,F and L,M)
 nfl_data <- nfl_data %>% filter(`Home Score` == homesc,`Away Score` == awaysc)

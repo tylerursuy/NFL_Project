@@ -5,6 +5,8 @@ import sys
 
 nflplays = sys.argv[1]
 spreads = sys.argv[2]
+fullgame = bool(sys.argv[3])
+print(fullgame)
 
 nfl = pd.read_csv(nflplays, low_memory=False)
 spread = pd.read_csv(spreads)
@@ -86,9 +88,18 @@ print("Tyler's part done")
 nfl = nfl.sort_values(['Date', 'GameID', 'TimeSecs'], ascending=False)
 nfl = nfl[0 <= nfl.TimeSecs]
 nfl.index = range(nfl.shape[0])
+df = nfl
 
 # add fumbles, sacks, penalty yardage
-gameid = []; hometm = []; awaytm = []; homesc = []; awaysc = []; hmhalfsc = []; awhalfsc = []; ot = []
+# add fumbles, sacks, penalty yardage
+gameid = [];
+hometm = [];
+awaytm = [];
+homesc = [];
+awaysc = [];
+hmhalfsc = [];
+awhalfsc = [];
+ot = []
 hpassyds = [0];
 hpatts = [0];
 hypa = [];
@@ -97,7 +108,11 @@ hcpct = [];
 hints = [0];
 hrushyds = [0];
 hratts = [0];
-hypr = []
+hypr = [];
+hsacks = [0];
+hsackyds = [0];
+hfums = [0];
+hfumlost = [0];
 apassyds = [0];
 apatts = [0];
 aypa = [];
@@ -106,112 +121,204 @@ acpct = [];
 aints = [0];
 arushyds = [0];
 aratts = [0];
-aypr = []
+aypr = [];
+asacks = [0];
+asackyds = [0];
+afums = [0];
+afumlost = [0]
 hmadj = 0;
 awadj = 0
-for i in range(nfl.shape[0]):
-    if nfl.qtr[i] == 4 and not nfl.qtr[i + 1] == 4:
-        if nfl.qtr[i + 1] == 1:
+for i in range(df.shape[0]):
+    if df.qtr[i] == 4 and not df.qtr[i + 1] == 4:
+        if df.qtr[i + 1] == 1:
             ot.extend([0])
         else:
             ot.extend([1])
-        offscore = nfl.PosTeamScore[i - 1]  # score after 4 quarters
-        defscore = nfl.DefTeamScore[i - 1]
-        if nfl.posteam[i] == nfl.HomeTeam[i]:
-            homesc.extend([offscore + hmadj])
+        offscore = df.PosTeamScore[i - 1]  # score after 4 quarters
+        defscore = df.DefTeamScore[i - 1]
+        fgpts = 0
+        if math.isnan(offscore):
+            offscore = df.PosTeamScore[i]
+            defscore = df.DefTeamScore[i]
+            if df.FieldGoalResult[i] == 'Good':
+                fgpts += 3
+        if df.posteam[i] == df.HomeTeam[i]:
+            if df.Touchdown[i] == 1 and not df.sp[i] == 1:
+                hmadj += 6
+                if df.ExPointResult[i] == 'Good':
+                    hmadj += 1
+                elif df.TwoPointConv[i] == 'Success':
+                    hmadj += 2
+            elif df.Touchdown[i] == 1 and df.sp[i] == 1:
+                awadj += 6
+                if df.ExPointResult[i] == 'Good':
+                    awadj += 1
+                elif df.TwoPointConv[i] == 'Success':
+                    awadj += 2
+            homesc.extend([offscore + hmadj + fgpts])
             awaysc.extend([defscore + awadj])
         else:
+            if df.Touchdown[i] == 1 and not df.sp[i] == 1:
+                awadj += 6
+                if df.ExPointResult[i] == 'Good':
+                    awadj += 1
+                elif df.TwoPointConv[i] == 'Success':
+                    awadj += 2
+            elif df.Touchdown[i] == 1 and df.sp[i] == 1:
+                hmadj += 6
+                if df.ExPointResult[i] == 'Good':
+                    hmadj += 1
+                elif df.TwoPointConv[i] == 'Success':
+                    hmadj += 2
             homesc.extend([defscore + hmadj])
-            awaysc.extend([offscore + awadj])
+            awaysc.extend([offscore + awadj + fgpts])
         hmadj = 0;
         awadj = 0  # will be uncommented
-    if nfl.qtr[i] == 2 and not nfl.qtr[i + 1] == 2:  # 4 to be changed to 2
-        gameid.extend([nfl.GameID[i]])
-        hometm.extend([nfl.HomeTeam[i]])
-        awaytm.extend([nfl.AwayTeam[i]])
+    qtr = 2
+    if fullgame: qtr = 4
+    if df.qtr[i] == qtr and not df.qtr[i + 1] == qtr:  # 4 to be changed to 2
+        gameid.extend([df.GameID[i]])
+        hometm.extend([df.HomeTeam[i]])
+        awaytm.extend([df.AwayTeam[i]])
         hypa.extend([hpassyds[-1] / hpatts[-1]]);
         hcpct.extend([hcomp[-1] / hpatts[-1]])
         hypr.extend([hrushyds[-1] / hratts[-1]])
-        hpassyds.extend([0]);
-        hpatts.extend([0]);
-        hcomp.extend([0]);
-        hints.extend([0])
-        hrushyds.extend([0]);
-        hratts.extend([0])
+        hpassyds.append(0);
+        hpatts.append(0);
+        hcomp.append(0);
+        hints.append(0);
+        hrushyds.append(0);
+        hratts.append(0)
+        hsacks.append(0);
+        hsackyds.append(0);
+        hfums.append(0);
+        hfumlost.append(0)
         aypa.extend([apassyds[-1] / apatts[-1]]);
         acpct.extend([acomp[-1] / apatts[-1]])
         aypr.extend([arushyds[-1] / aratts[-1]])
-        apassyds.extend([0]);
-        apatts.extend([0]);
-        acomp.extend([0]);
-        aints.extend([0])
-        arushyds.extend([0]);
-        aratts.extend([0])
+        apassyds.append(0);
+        apatts.append(0);
+        acomp.append(0);
+        aints.append(0);
+        arushyds.append(0);
+        aratts.append(0)
+        asacks.append(0);
+        asackyds.append(0);
+        afums.append(0);
+        afumlost.append(0)
 
-        offscore = nfl.PosTeamScore[i + 1]  # halftime score
-        defscore = nfl.DefTeamScore[i + 1]
-        if nfl.posteam[i + 1] == nfl.HomeTeam[i]:
+        offscore = df.PosTeamScore[i + 1]  # halftime score
+        defscore = df.DefTeamScore[i + 1]
+        if df.posteam[i + 1] == df.HomeTeam[i]:
             hmhalfsc.extend([offscore + hmadj])
             awhalfsc.extend([defscore + awadj])
         else:
             hmhalfsc.extend([defscore + hmadj])
             awhalfsc.extend([offscore + awadj])
         # hmadj=0; awadj=0 #should be commented out
-    if nfl.qtr[i] in [1, 2, 3, 4]:  # need all 4 quarters for full time score
-        if nfl.Touchdown[i] == 1:
+    if df.qtr[i] in [1, 2, 3, 4]:  # need all 4 quarters for full time score
+        if df.Touchdown[i] == 1:
             j = 1
-            while not isinstance(nfl.posteam[i + j], str):
+            while not isinstance(df.posteam[i + j], str):
                 j += 1
-            if not isinstance(nfl.ExPointResult[i + j], str) and not isinstance(nfl.TwoPointConv[i + j], str) and \
-                    nfl['Challenge.Replay'][i] == 0:
-                if nfl.HomeTeam[i] == nfl.DefensiveTeam[i]:
+            if not isinstance(df.ExPointResult[i + j], str) and not isinstance(df.TwoPointConv[i + j], str) and \
+                    df['Challenge.Replay'][i] == 0:
+                if df.HomeTeam[i] == df.DefensiveTeam[i]:
                     hmadj += 1
-                    if nfl.ScoreDiff[i] == nfl.ScoreDiff[i + j]:
+                    if df.ScoreDiff[i] == df.ScoreDiff[i + j]:
                         hmadj += 6
                 else:
                     awadj += 1
-                    if nfl.ScoreDiff[i] == nfl.ScoreDiff[i + j]:
+                    if df.ScoreDiff[i] == df.ScoreDiff[i + j]:
                         awadj += 6
-    if nfl.qtr[i] in [1, 2]:  # to be changed to [1,2]
-        if nfl.PassAttempt[i] == 1 and not nfl.PlayType[i] == 'No Play':
-            if nfl.posteam[i] == nfl.HomeTeam[i]:
+    qtrs = [1, 2]
+    if fullgame: qtrs = [1, 2, 3, 4]
+    if df.qtr[i] in qtrs:  # to be changed to [1,2]
+        if df.PassAttempt[i] == 1 and not df.PlayType[i] == 'No Play' and not isinstance(df.TwoPointConv[i], str):
+            if df.posteam[i] == df.HomeTeam[i]:
                 hpatts[-1] += 1
-                if nfl.InterceptionThrown[i] == 1:
+                if df.InterceptionThrown[i] == 1:
                     hints[-1] += 1
-                elif nfl.PassOutcome[i] == 'Complete':
-                    hpassyds[-1] += nfl.AirYards[i] + nfl.YardsAfterCatch[i]
+                elif df.PassOutcome[i] == 'Complete':
+                    hpassyds[-1] += df.AirYards[i] + df.YardsAfterCatch[i]
                     hcomp[-1] += 1
-            elif nfl.posteam[i] == nfl.AwayTeam[i]:
+            #                 elif df['Yards.Gained'][i] >0 and df['Challenge.Replay'][i] == 1:
+            #                     hpassyds[-1] += df.AirYards[i] + df.YardsAfterCatch[i]
+            #                     hcomp[-1] += 1
+            elif df.posteam[i] == df.AwayTeam[i]:
                 apatts[-1] += 1
-                if nfl.InterceptionThrown[i] == 1:
+                if df.InterceptionThrown[i] == 1:
                     aints[-1] += 1
-                elif nfl.PassOutcome[i] == 'Complete':
-                    apassyds[-1] += nfl.AirYards[i] + nfl.YardsAfterCatch[i]
+                elif df.PassOutcome[i] == 'Complete':
+                    apassyds[-1] += df.AirYards[i] + df.YardsAfterCatch[i]
                     acomp[-1] += 1
-        elif nfl.RushAttempt[i] == 1 and not nfl.PlayType[i] == 'No Play':
-            if nfl.posteam[i] == nfl.HomeTeam[i]:
+        elif df.RushAttempt[i] == 1 and not df.PlayType[i] == 'No Play' and not isinstance(df.TwoPointConv[i], str):
+            if df.posteam[i] == df.HomeTeam[i]:
                 hratts[-1] += 1
-                if nfl['Challenge.Replay'][i] == 1:
-                    hrushyds[-1] += (nfl.yrdline100[i] - nfl.yrdline100[i + 1])
+                if df['Challenge.Replay'][i] == 1:
+                    hrushyds[-1] += (df.yrdline100[i] - df.yrdline100[i + 1])
                 else:
-                    hrushyds[-1] += nfl['Yards.Gained'][i]
-            elif nfl.posteam[i] == nfl.AwayTeam[i]:
+                    hrushyds[-1] += df['Yards.Gained'][i]
+            elif df.posteam[i] == df.AwayTeam[i]:
                 aratts[-1] += 1
-                if nfl['Challenge.Replay'][i] == 1:
-                    arushyds[-1] += (nfl.yrdline100[i] - nfl.yrdline100[i + 1])
+                if df['Challenge.Replay'][i] == 1:
+                    arushyds[-1] += (df.yrdline100[i] - df.yrdline100[i + 1])
                 else:
-                    arushyds[-1] += nfl['Yards.Gained'][i]
+                    arushyds[-1] += df['Yards.Gained'][i]
+        elif df.Sack[i] == 1:
+            if df.posteam[i] == df.HomeTeam[i]:
+                hsacks[-1] += 1
+                hsackyds[-1] += df['Yards.Gained'][i]
+            elif df.posteam[i] == df.AwayTeam[i]:
+                asacks[-1] += 1
+                asackyds[-1] += df['Yards.Gained'][i]
+        if df.Fumble[i] == 1:
+            if df.posteam[i] == df.HomeTeam[i]:
+                hfums[-1] += 1
+                if df.RecFumbTeam[i] == df.AwayTeam[i]:
+                    hfumlost[-1] += 1
+            elif df.posteam[i] == df.AwayTeam[i]:
+                afums[-1] += 1
+                if df.RecFumbTeam[i] == df.HomeTeam[i]:
+                    afumlost[-1] += 1
 
-hpassyds = hpassyds[:-1]; hpatts = hpatts[:-1]; hcomp = hcomp[:-1]; hints = hints[:-1]; hrushyds = hrushyds[:-1]; hratts = hratts[:-1]
-apassyds = apassyds[:-1]; apatts = apatts[:-1]; acomp = acomp[:-1]; aints = aints[:-1]; arushyds = arushyds[:-1]; aratts = aratts[:-1]
+hpassyds = hpassyds[:-1]; hpatts = hpatts[:-1]; hcomp = hcomp[:-1]; hints = hints[:-1]; hrushyds = hrushyds[:-1]
+hratts = hratts[:-1]; hsacks = hsacks[:-1]; hsackyds = hsackyds[:-1]; hfums = hfums[:-1]; hfumlost = hfumlost[:-1]
+apassyds = apassyds[:-1]; apatts = apatts[:-1]; acomp = acomp[:-1]; aints = aints[:-1]; arushyds = arushyds[:-1]
+aratts = aratts[:-1]; asacks = asacks[:-1]; asackyds = asackyds[:-1]; afums = afums[:-1]; afumlost = afumlost[:-1]
 
 wrangled = pd.DataFrame({'gameid':gameid, 'home':hometm, 'away':awaytm, 'homesc':homesc, 'awaysc':awaysc,
                          'hmhalfsc':hmhalfsc, 'awhalfsc':awhalfsc, 'ot':ot,
                          'hpyd':hpassyds, 'hpatt':hpatts, 'hcomp':hcomp, 'hypa':hypa, 'hcomppct':hcpct, 'hint':hints,
-                         'hryd':hrushyds, 'hratt':hratts, 'hypr':hypr,
+                         'hryd':hrushyds, 'hratt':hratts, 'hypr':hypr, 'hsacks':hsacks, 'hsackyds':hsackyds,
+                         'hfum':hfums, 'hfuml':hfumlost,
                          'apyd':apassyds, 'apatt':apatts, 'acomp':acomp, 'aypa':aypa, 'acomppct':acpct, 'aint':aints,
-                         'aryd':arushyds, 'aratt':aratts, 'aypr':aypr})
+                         'aryd':arushyds, 'aratt':aratts, 'aypr':aypr, 'asacks':asacks, 'asackyds':asackyds,
+                        'afum':afums, 'afuml':afumlost})
+
+htotyds = wrangled[['hpyd','hryd','hsackyds']].transpose().sum()
+atotyds = wrangled[['apyd','aryd','asackyds']].transpose().sum()
+htos = wrangled[['hint','hfuml']].transpose().sum()
+atos = wrangled[['aint','afuml']].transpose().sum()
+wrangled['htotyds'] = htotyds; wrangled['atotyds'] = atotyds
+wrangled['htos'] = htos; wrangled['atos'] = atos
+
 wrangled = wrangled.set_index('gameid')
 
 merged = new_df.merge(wrangled, how='outer', on='gameid')
-merged.to_csv('nfl_cleaned.csv')
+if fullgame:
+    merged.to_csv('nfl_cleaned_full.csv')
+else:
+    valid_gameids = sys.argv[4]
+    valid_gameids = pd.read_csv('valid_gameids.csv')
+    valid_gameids = valid_gameids.set_index('valid_gameids')
+    merged = merged.loc[valid_gameids.index]
+    merged['Favorite Team ID'][merged['Favorite Team ID'] == 'LAR'] = 'LA'
+    merged.home[merged.home == 'JAC'] = 'JAX'
+    merged['homespread'] = merged['Spread Favorite']
+    merged.homespread[merged['Favorite Team ID'] != merged.home] = -merged.homespread[
+    merged['Favorite Team ID'] != merged.home]
+    merged['homewin'] = merged['Home Score'] > merged['Away Score']
+    merged.homewin = merged.homewin.astype(int)
+
+    merged.to_csv('nfl_cleaned.csv')

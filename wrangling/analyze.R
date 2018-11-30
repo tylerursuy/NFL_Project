@@ -1,6 +1,6 @@
 library(PerformanceAnalytics)
 
-game_data <- read.csv('../nfl_cleaned.csv')
+game_data <- read.csv('data/nfl_cleaned.csv')
 
 hmpredpts <- game_data$Over.Under/2 - game_data$homespread/2
 awpredpts <- game_data$Over.Under - hmpredpts
@@ -24,6 +24,7 @@ reduced <- data.frame(scores, predscores, htscores, combined)
 reduced$scores <- sqrt(reduced$scores)
 View(reduced)
 
+# write.csv(reduced, "data/reduced.csv")
 
 train_sample <- sample.int(nrow(reduced), size = round(.75*nrow(reduced)))
 train <- reduced[train_sample,]
@@ -37,6 +38,7 @@ stepregr = step(null, scope = list(upper = scorelm), data=train, direction="both
 #summary(stepregr)
 
 manualregr <- lm(scores~predscores+tmhalfsc+patt+ypa+ratt+ypr+sackyds, data = train)
+manualregr$coefficients
 
 y_pred <- predict(scorelm, newdata = test)
 sqrt(sum((test$scores-y_pred)^2))

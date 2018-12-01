@@ -4,7 +4,7 @@ library(tidyverse)
 game_data <- read.csv('../nfl_cleaned.csv')
 
 otgames <- game_data %>% filter(ot == 1)
-game_data <- game_data %>% filter(ot == 0)
+#game_data <- game_data %>% filter(ot == 0)
 hmpredpts <- game_data$Over.Under/2 - game_data$homespread/2
 awpredpts <- game_data$Over.Under - hmpredpts
 predscores <- c(hmpredpts, awpredpts)
@@ -53,10 +53,11 @@ reduced_old$scores <- sqrt(reduced_old$scores)
 reduced_compare$scores <- sqrt(reduced_compare$scores)
 reduced <- reduced_compare
 
+reduced_ot <- data.frame(reduced, ot=rep(game_data$ot, 2))
 
-View(reduced)
+View(reduced_ot)
 
-write.csv(reduced, "../reduced.csv")
+write.csv(reduced_ot, "../reduced.csv")
 
 train_sample <- sample.int(nrow(reduced), size = round(.75*nrow(reduced)))
 train <- reduced[train_sample,]

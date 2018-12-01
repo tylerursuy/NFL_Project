@@ -9,6 +9,26 @@ hmpredpts <- game_data$Over.Under/2 - game_data$homespread/2
 awpredpts <- game_data$Over.Under - hmpredpts
 predscores <- c(hmpredpts, awpredpts)
 scores <- c(game_data$Home.Score, game_data$Away.Score)
+hmintpct <- game_data$hint / game_data$hpatt
+awintpct <- game_data$aint / game_data$apatt
+int_pct <- c(hmintpct, awintpct)
+
+hmsackpct <- game_data$hsacks / (game_data$hsacks + game_data$hpatt)
+awsackpct <- game_data$asacks / (game_data$asacks + game_data$apatt)
+sack_pct <- c(hmsackpct, awsackpct)
+
+hmsackyds <- game_data$hsackyds / (game_data$hsacks + game_data$hpatt)
+awsackyds <- game_data$asackyds / (game_data$asacks + game_data$apatt)
+sack_yd_pct <- c(hmsackyds, awsackyds)
+
+hmfumpct <- game_data$hfum / (game_data$hpatt + game_data$hratt + game_data$hsacks)
+awfumpct <- game_data$afum / (game_data$apatt + game_data$aratt + game_data$asacks)
+fum_pct <- c(hmfumpct, awfumpct)
+
+hmfumlost <- game_data$hfuml / game_data$hfum
+awfumlost <- game_data$afuml / game_data$afum
+
+fum_lost_pct <- c(hmfumlost, awfumlost)
 hmhtscores <- game_data[,c('hmhalfsc','awhalfsc')]
 awhtscores <- game_data[,c('awhalfsc','hmhalfsc')]
 colnames(hmhtscores) <- c('tmhalfsc', 'opphalfsc')
@@ -22,9 +42,18 @@ colnames(hstats) <- c('patt','ypa','comppct','int','ratt','ypr','sacks','sackyds
 colnames(astats) <- c('patt','ypa','comppct','int','ratt','ypr','sacks','sackyds','fum','fuml')
 combined <- rbind(hstats, astats)
 
-reduced <- data.frame(scores, predscores, htscores, combined)
+reduced <- data.frame(scores, predscores, htscores, combined, int_pct, sack_pct, sack_yd_pct,
+                      fum_pct)
+reduced_old <- data.frame(scores, predscores, htscores, combined)
+keep <- c("scores", "predscores", "tmhalfsc", "opphalfsc", "patt", "ypa", "comppct",
+          "ratt", "ypr", "int_pct", "sack_pct", "sack_yd_pct", "fum_pct")
+reduced_compare <- reduced[,keep]
 #reduced$scores[reduced$scores != 0] <- log(reduced$scores[reduced$scores != 0])
-reduced$scores <- sqrt(reduced$scores)
+reduced_old$scores <- sqrt(reduced_old$scores)
+reduced_compare$scores <- sqrt(reduced_compare$scores)
+reduced <- reduced_compare
+
+
 View(reduced)
 
 write.csv(reduced, "../reduced.csv")
@@ -34,23 +63,40 @@ train <- reduced[train_sample,]
 test <- reduced[-train_sample,]
 
 scorelm <- lm(scores~., data=train)
-summary(scorelm)
+#summary(scorelm)
 
 null = lm(scores~1, data = train)
 stepregr = step(null, scope = list(upper = scorelm), data=train, direction="both", trace=0)
 #summary(stepregr)
 
-manualregr <- lm(scores~predscores+tmhalfsc+patt+ypa+ratt+ypr+sackyds, data = train)
-manualregr$coefficients
+manualregr <- lm(scores~predscores+tmhalfsc+sack_yd_pct+int_pct+sack_pct+ypa, data = train)
+#summary(manualregr) 
 
 y_pred <- predict(scorelm, newdata = test)
-sqrt(sum((test$scores-y_pred)^2))
-y_pred <- predict(stepregr, newdata = test)
-sqrt(sum((test$scores-y_pred)^2))
-y_pred <- predict(manualregr, newdata = test)
-sqrt(sum((test$scores-y_pred)^2))
+sqrt(sum((test$scores-y_pred)^2) / nrow(test))
+y_pred_step <- predict(stepregr, newdata = test)
+sqrt(sum((test$scores-y_pred_step)^2) / nrow(test))
+y_pred_man <- predict(manualregr, newdata = test)
+sqrt(sum((test$scores-y_pred_man)^2) / nrow(test))
 
-manualregr <- lm(scores~predscores+tmhalfsc+patt+ypa+ratt+ypr+sackyds, data = reduced)
+split <- length(y_pred_man) / 2
+hm_final_pred <- round((y_pred_man[0:split])^2)
+aw_final_pred <-round((y_pred_man[(split+1):length(y_pred_man)])^2)
+real_hm <- round(test$scores[0:split]^2)
+real_aw <- round(test$scores[(split+1):length(test$scores)]^2)
+pred_df <- data.frame(hm_final_pred, aw_final_pred, real_hm, real_aw)
+pred_df <- pred_df %>% 
+  mutate(pred_home_win = ifelse(hm_final_pred > aw_final_pred, 1, 0)) %>% 
+  mutate(real_home_win = ifelse(real_hm > real_aw, 1, 0)) %>% 
+  mutate(correct = ifelse(pred_home_win == real_home_win, 1, 0))
+
+correct <- pred_df$correct
+right <- sum(correct)
+wrong <- length(correct) - right
+right / (right + wrong)
+
+manualregr_log <- glm(scores~predscores+tmhalfsc+sack_yd_pct+int_pct+sack_pct+ypa,
+                      data = train, family = "binomial")
 hist(manualregr$residuals)
 skewness(manualregr$residuals)
 kurtosis(manualregr$residuals)

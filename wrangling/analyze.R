@@ -1,7 +1,10 @@
 library(PerformanceAnalytics)
+library(tidyverse)
 
-game_data <- read.csv('data/nfl_cleaned.csv')
+game_data <- read.csv('../nfl_cleaned.csv')
 
+otgames <- game_data %>% filter(ot == 1)
+game_data <- game_data %>% filter(ot == 0)
 hmpredpts <- game_data$Over.Under/2 - game_data$homespread/2
 awpredpts <- game_data$Over.Under - hmpredpts
 predscores <- c(hmpredpts, awpredpts)
@@ -24,14 +27,14 @@ reduced <- data.frame(scores, predscores, htscores, combined)
 reduced$scores <- sqrt(reduced$scores)
 View(reduced)
 
-# write.csv(reduced, "data/reduced.csv")
+write.csv(reduced, "../reduced.csv")
 
 train_sample <- sample.int(nrow(reduced), size = round(.75*nrow(reduced)))
 train <- reduced[train_sample,]
 test <- reduced[-train_sample,]
 
 scorelm <- lm(scores~., data=train)
-#summary(scorelm)
+summary(scorelm)
 
 null = lm(scores~1, data = train)
 stepregr = step(null, scope = list(upper = scorelm), data=train, direction="both", trace=0)

@@ -43,6 +43,7 @@ relevant <- data.frame(date, home, wrangled[,c('gameid','ot','homesc','awaysc','
 merged <- merge(relevant, all_scores, all.x = TRUE, all.y = FALSE)
 merged <- merged[!is.na(merged$homesc),]
 merged <- merged[!is.na(merged$hmpts),]
+otgames <- merged[merged$ot==1,]
 merged <- merged[merged$ot == 0,]
 
 sum(merged$homesc==merged$hmpts & merged$awaysc==merged$awpts)
@@ -60,7 +61,9 @@ valid_loose <- abs(merged$homesc-merged$hmpts)<=1 & abs(merged$awaysc-merged$awp
   abs(merged$htos-merged$hmto)<=1 & abs(merged$atos-merged$awto)<=1
 sum(valid_loose)
 
+valid_ot_ids = otgames$gameid
 valid_gameids <- merged$gameid[valid_loose]
+valid_gameids <- c(valid_gameids, valid_ot_ids)
 valid_gameids <- data.frame(valid_gameids, stringsAsFactors = F)
 write.csv(valid_gameids, '../valid_gameids.csv')
 

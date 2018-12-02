@@ -1,14 +1,26 @@
 library(PerformanceAnalytics)
 library(tidyverse)
 
-game_data <- read.csv('../nfl_cleaned.csv')
+game_data <- read.csv('../nfl_cleaned.csv', stringsAsFactors = F)
 
-otgames <- game_data %>% filter(ot == 1)
-#game_data <- game_data %>% filter(ot == 0)
-hmpredpts <- game_data$Over.Under/2 - game_data$homespread/2
+game_data$Favorite.Team.ID[game_data$Favorite.Team.ID=='LAR'] <- 'LA'
+game_data$home[game_data$home=='JAC'] <- 'JAX'
+game_data$away[game_data$away=='JAC'] <- 'JAX'
+game_data$home[game_data$home=='SD'] <- 'LAC'
+game_data$away[game_data$away=='SD'] <- 'LAC'
+game_data$home[game_data$home=='STL'] <- 'LA'
+game_data$away[game_data$away=='STL'] <- 'LA'
+
+spread_home <- game_data$Spread.Favorite
+spread_home[game_data$Favorite.Team.ID != game_data$home] <- 
+  -spread_home[game_data$Favorite.Team.ID != game_data$home]
+
+hmpredpts <- game_data$Over.Under/2 - spread_home/2
 awpredpts <- game_data$Over.Under - hmpredpts
 predscores <- c(hmpredpts, awpredpts)
+
 scores <- c(game_data$Home.Score, game_data$Away.Score)
+
 hmintpct <- game_data$hint / game_data$hpatt
 awintpct <- game_data$aint / game_data$apatt
 int_pct <- c(hmintpct, awintpct)
@@ -27,37 +39,34 @@ fum_pct <- c(hmfumpct, awfumpct)
 
 hmfumlost <- game_data$hfuml / game_data$hfum
 awfumlost <- game_data$afuml / game_data$afum
-
 fum_lost_pct <- c(hmfumlost, awfumlost)
+
+# add transformation of pass, rush yards
+# add pass, rush yards/att
+hairya <- game_data$hairyd/game_data$hpatt; aairya <- game_data$aairyd/game_data$apatt
+hyaca <- game_data$hyac/game_data$hpatt; ayaca <- game_data$ayac/game_data$hpatt
+hypr <- game_data$hryd/game_data$hratt; aypr <- game_data$aryd/game_data$aratt
+airya <- c(hairya, aairya); yaca <- c(hyaca, ayaca); ypr <- c(hypr, aypr)
+
 hmhtscores <- game_data[,c('hmhalfsc','awhalfsc')]
 awhtscores <- game_data[,c('awhalfsc','hmhalfsc')]
 colnames(hmhtscores) <- c('tmhalfsc', 'opphalfsc')
 colnames(awhtscores) <- c('tmhalfsc', 'opphalfsc')
 htscores <- rbind(hmhtscores, awhtscores)
-hstats <- game_data[,c('hpatt','hypa','hcomppct','hint','hratt','hypr','hsacks','hsackyds',
-                       'hfum','hfuml')]
-astats <- game_data[,c('apatt','aypa','acomppct','aint','aratt','aypr','asacks','asackyds',
-                       'afum','afuml')]
-colnames(hstats) <- c('patt','ypa','comppct','int','ratt','ypr','sacks','sackyds','fum','fuml')
-colnames(astats) <- c('patt','ypa','comppct','int','ratt','ypr','sacks','sackyds','fum','fuml')
+hstats <- game_data[,c('hpassd','hpatt','hcomppct','hratt','hrushsd')]
+astats <- game_data[,c('apassd','apatt','acomppct','aratt','arushsd')]
+colnames(hstats) <- c('psd','patt','comppct','ratt','rushsd')
+colnames(astats) <- colnames(hstats)
 combined <- rbind(hstats, astats)
 
-reduced <- data.frame(scores, predscores, htscores, combined, int_pct, sack_pct, sack_yd_pct,
-                      fum_pct)
-reduced_old <- data.frame(scores, predscores, htscores, combined)
-keep <- c("scores", "predscores", "tmhalfsc", "opphalfsc", "patt", "ypa", "comppct",
-          "ratt", "ypr", "int_pct", "sack_pct", "sack_yd_pct", "fum_pct")
-reduced_compare <- reduced[,keep]
-#reduced$scores[reduced$scores != 0] <- log(reduced$scores[reduced$scores != 0])
-reduced_old$scores <- sqrt(reduced_old$scores)
-reduced_compare$scores <- sqrt(reduced_compare$scores)
-reduced <- reduced_compare
-
+reduced <- data.frame(scores, predscores, htscores, airya, yaca, combined, ypr, int_pct, 
+                      sack_pct, sack_yd_pct, fum_pct)
 reduced_ot <- data.frame(reduced, ot=rep(game_data$ot, 2))
-
 View(reduced_ot)
 
-write.csv(reduced_ot, "../reduced.csv")
+write.csv(reduced, "../reduced_noot.csv")
+
+
 
 train_sample <- sample.int(nrow(reduced), size = round(.75*nrow(reduced)))
 train <- reduced[train_sample,]

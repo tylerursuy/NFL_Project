@@ -5,13 +5,14 @@ library(tidyverse)
 library(gridExtra)
 
 # load data
-nfl_data <- read_csv('/Users/brianwright/classes/msds621-ML/NFL_Project/reduced.csv')
+nfl_data <- read_csv('/Users/brianwright/classes/msds621-ML/NFL_Project/reduced_noot.csv')
 head(nfl_data)
 
 #max(nfl_data$scores)^2
 
 # add indicator column for whether team is home or away
-nfl_data_with_flag = nfl_data %>% mutate(team = ifelse(X1 < 1342,"H","A"),net_diff = scores^2-predscores)
+nfl_data_with_flag = nfl_data %>% mutate(team = ifelse(X1 < 1342,"H","A"),net_diff = scores^2-predscores,ypa=airya+yaca)
+head(nfl_data_with_flag)
 
 # exploring some columns
 pass_hist <- ggplot(nfl_data_with_flag) + geom_histogram(aes(patt))

@@ -60,12 +60,18 @@ colnames(hstats) <- c('airyd','yac','psd','patt','comppct','ryd','ratt','rushsd'
 colnames(astats) <- colnames(hstats)
 combined <- rbind(hstats, astats)
 
-reduced <- data.frame(scores, predscores, htscores, airya, yaca, combined, ypr, int_pct, 
+reduced <- data.frame(date=rep(game_data$Date,2), team=c(game_data$Home.Team, game_data$Away.Team),
+                      ot=rep(game_data$ot, 2),
+                      scores, predscores, htscores, airya, yaca, combined, ypr, int_pct, 
                       sack_pct, sack_yd_pct, fum_pct)
-reduced_ot <- data.frame(reduced, ot=rep(game_data$ot, 2))
+reduced <- reduced %>% filter(ot==0)
+reduced_noot <- reduced[,-c(1:3)]
+
+View(reduced_noot)
 View(reduced)
 
-write.csv(reduced, "../reduced_noot.csv")
+write.csv(reduced, "../reduced_wdate.csv")
+write.csv(reduced_noot, "../reduced_noot.csv")
 
 reduced$scores <- sqrt(reduced$scores)
 

@@ -1,5 +1,6 @@
 library(PerformanceAnalytics)
 library(tidyverse)
+library(car)
 
 game_data <- read.csv('../nfl_cleaned.csv', stringsAsFactors = F)
 
@@ -53,20 +54,20 @@ awhtscores <- game_data[,c('awhalfsc','hmhalfsc')]
 colnames(hmhtscores) <- c('tmhalfsc', 'opphalfsc')
 colnames(awhtscores) <- c('tmhalfsc', 'opphalfsc')
 htscores <- rbind(hmhtscores, awhtscores)
-hstats <- game_data[,c('hpassd','hpatt','hcomppct','hratt','hrushsd')]
-astats <- game_data[,c('apassd','apatt','acomppct','aratt','arushsd')]
-colnames(hstats) <- c('psd','patt','comppct','ratt','rushsd')
+hstats <- game_data[,c('hairyd','hyac','hpassd','hpatt','hcomppct','hryd','hratt','hrushsd')]
+astats <- game_data[,c('aairyd','ayac','apassd','apatt','acomppct','aryd','aratt','arushsd')]
+colnames(hstats) <- c('airyd','yac','psd','patt','comppct','ryd','ratt','rushsd')
 colnames(astats) <- colnames(hstats)
 combined <- rbind(hstats, astats)
 
 reduced <- data.frame(scores, predscores, htscores, airya, yaca, combined, ypr, int_pct, 
                       sack_pct, sack_yd_pct, fum_pct)
 reduced_ot <- data.frame(reduced, ot=rep(game_data$ot, 2))
-View(reduced_ot)
+View(reduced)
 
 write.csv(reduced, "../reduced_noot.csv")
 
-
+reduced$scores <- sqrt(reduced$scores)
 
 train_sample <- sample.int(nrow(reduced), size = round(.75*nrow(reduced)))
 train <- reduced[train_sample,]
@@ -74,13 +75,16 @@ test <- reduced[-train_sample,]
 
 scorelm <- lm(scores~., data=train)
 #summary(scorelm)
+#vif(scorelm)
 
 null = lm(scores~1, data = train)
 stepregr = step(null, scope = list(upper = scorelm), data=train, direction="both", trace=0)
 #summary(stepregr)
 
-manualregr <- lm(scores~predscores+tmhalfsc+sack_yd_pct+int_pct+sack_pct+ypa, data = train)
-#summary(manualregr) 
+manualregr <- lm(scores~predscores+tmhalfsc+opphalfsc+sack_yd_pct+int_pct+airya+yaca+
+                   psd+rushsd, data = train)
+#summary(manualregr)
+#vif(manualregr)
 
 y_pred <- predict(scorelm, newdata = test)
 sqrt(sum((test$scores-y_pred)^2) / nrow(test))
@@ -88,6 +92,11 @@ y_pred_step <- predict(stepregr, newdata = test)
 sqrt(sum((test$scores-y_pred_step)^2) / nrow(test))
 y_pred_man <- predict(manualregr, newdata = test)
 sqrt(sum((test$scores-y_pred_man)^2) / nrow(test))
+
+skewness(manualregr$residuals)
+kurtosis(manualregr$residuals)
+hist(manualregr$residuals)
+plot(manualregr)
 
 split <- length(y_pred_man) / 2
 hm_final_pred <- round((y_pred_man[0:split])^2)

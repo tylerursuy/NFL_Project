@@ -141,10 +141,10 @@ for i in range(df.shape[0]):
             homesc.extend([defscore + hmadj])
             awaysc.extend([offscore + awadj + fgpts])
         hmadj = 0;
-        awadj = 0  # will be uncommented
+        awadj = 0
     qtr = 2
     if fullgame: qtr = 4
-    if df.qtr[i] == qtr and not df.qtr[i + 1] == qtr:  # 4 to be changed to 2
+    if df.qtr[i] == qtr and not df.qtr[i + 1] == qtr:
         gameid.extend([df.GameID[i]])
         hometm.extend([df.HomeTeam[i]])
         awaytm.extend([df.AwayTeam[i]])
@@ -173,7 +173,7 @@ for i in range(df.shape[0]):
         aairyds.append(0);
         hyac.append(0);
         ayac.append(0)
-        
+
         hpassd.append(np.std(hpassgm))
         if len(apassgm) == 0:
             apassd.append(0)
